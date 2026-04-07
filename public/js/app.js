@@ -408,8 +408,40 @@ $('#generateBtn').addEventListener('click', async () => {
   `;
 
   try {
+    let finalPrompt = prompt || '生成一段精彩的视频';
+
+    // 如果开启了联网搜索，先用联网搜索增强提示词
+    const webSearchEnabled = $('#webSearchToggle').checked;
+    if (webSearchEnabled && finalPrompt) {
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        联网搜索中...
+      `;
+      try {
+        const searchRes = await fetch('/api/web-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: finalPrompt })
+        });
+        const searchData = await searchRes.json();
+        if (searchData.success && searchData.enhancedPrompt) {
+          finalPrompt = searchData.enhancedPrompt;
+          showToast('联网搜索完成，已优化提示词', 'success');
+        } else {
+          showToast('联网搜索未返回有效结果，使用原始提示词', 'info');
+        }
+      } catch (searchErr) {
+        console.error('联网搜索失败:', searchErr);
+        showToast('联网搜索失败，使用原始提示词继续', 'error');
+      }
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        生成中...
+      `;
+    }
+
     const body = {
-      prompt: prompt || '生成一段精彩的视频',
+      prompt: finalPrompt,
       mode: state.mode,
       resolution: $('#resolutionSelect').value,
       ratio: $('#ratioSelect').value,
@@ -445,7 +477,7 @@ $('#generateBtn').addEventListener('click', async () => {
             id: result.data.id,
             index: state.tasks.length + 1,
             status: result.data.status || 'pending',
-            prompt: prompt,
+            prompt: finalPrompt,
             resolution: $('#resolutionSelect').value,
             ratio: $('#ratioSelect').value,
             duration: body.duration || 5,
@@ -568,16 +600,13 @@ async function refreshTaskStatus(taskId) {
       task.progress = Math.round((data.usage.completion_tokens / data.usage.total_tokens) * 100);
     }
 
-    if (data.status === 'succeeded') {
-      extractVideoUrl(task, data);
-      clearInterval(state.pollingIntervals[taskId]);
-      delete state.pollingIntervals[taskId];
-      updateTaskCounter();
-    }
-    if (data.status === 'failed') {
-      task.error = data.error?.message || data.error || '未知错误';
-      clearInterval(state.pollingIntervals[taskId]);
-      delete state.pollingIntervals[taskId];
+    if (data.status === 'succeeded' || data.status === 'failed') {
+      if (data.status === 'succeeded') {
+        extractVideoUrl(task, data);
+      } else {
+        task.error = data.error?.message || data.error || '未知错误';
+      }
+      stopPolling(taskId);
       updateTaskCounter();
     }
 
@@ -672,45 +701,66 @@ function extractVideoUrl(task, data) {
 
 // ===== Polling =====
 function startPolling(taskId) {
+  // 如果已经有正在运行的轮询，不要再开一个新的
+  if (state.pollingIntervals[taskId]) {
+    console.log(`[Polling] 任务 ${taskId} 的轮询已在进行中`);
+    return;
+  }
+
   const poll = async () => {
     try {
       const res = await fetch(`/api/status/${taskId}`);
       const data = await res.json();
 
       const task = state.tasks.find(t => t.id === taskId);
-      if (!task) return;
+      if (!task) {
+        stopPolling(taskId);
+        return;
+      }
 
       task.status = data.status || task.status;
 
-      // 解析进度
+      // 解析并更新进度
       if (data.progress !== undefined) {
         task.progress = Math.round(data.progress);
       } else if (data.usage && data.usage.completion_tokens && data.usage.total_tokens) {
         task.progress = Math.round((data.usage.completion_tokens / data.usage.total_tokens) * 100);
       }
 
-      if (data.status === 'succeeded') {
-        extractVideoUrl(task, data);
-        clearInterval(state.pollingIntervals[taskId]);
-        delete state.pollingIntervals[taskId];
+      // 处理终态
+      if (data.status === 'succeeded' || data.status === 'failed') {
+        if (data.status === 'succeeded') {
+          extractVideoUrl(task, data);
+        } else {
+          task.error = data.error?.message || data.error || '生成失败';
+        }
+        stopPolling(taskId);
         updateTaskCounter();
       }
 
-      if (data.status === 'failed') {
-        task.error = data.error?.message || data.error || '未知错误';
-        clearInterval(state.pollingIntervals[taskId]);
-        delete state.pollingIntervals[taskId];
-        updateTaskCounter();
-      }
-
+      // 刷新 UI 卡片显示
       updateResultCard(task);
+      
+      // 如果还在运行中，安排下一次轮询
+      if (task.status === 'pending' || task.status === 'processing') {
+        state.pollingIntervals[taskId] = setTimeout(poll, 5000);
+      }
     } catch (err) {
-      console.error('轮询失败:', err);
+      console.error(`[Polling Error] 任务 ${taskId} 轮询失败:`, err);
+      // 报错也别死，5秒后再试一次
+      state.pollingIntervals[taskId] = setTimeout(poll, 5000);
     }
   };
 
-  setTimeout(poll, 2000);
-  state.pollingIntervals[taskId] = setInterval(poll, 5000);
+  // 稍微延迟后发起第一次请求
+  state.pollingIntervals[taskId] = setTimeout(poll, 2000);
+}
+
+function stopPolling(taskId) {
+  if (state.pollingIntervals[taskId]) {
+    clearTimeout(state.pollingIntervals[taskId]);
+    delete state.pollingIntervals[taskId];
+  }
 }
 
 function updateTaskCounter() {

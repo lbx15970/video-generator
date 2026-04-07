@@ -207,6 +207,70 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   });
 });
 
+// 联网搜索（基于火山引擎联网内容插件 Responses API）
+app.post('/api/web-search', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: '缺少 prompt 参数' });
+
+    const body = {
+      model: 'doubao-seed-1-6-250615',
+      stream: false,
+      tools: [{ type: 'web_search' }],
+      input: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: `我要用 AI 生成一段视频，提示词是：「${prompt}」。请帮我联网搜索相关信息，然后基于搜索结果，输出一段优化后的、更详细生动的视频生成提示词（中文）。直接输出优化后的提示词即可，不要解释。`
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = await arkRequest('POST', '/api/v3/responses', body);
+    console.log('[Web Search] Response status:', result.status);
+
+    if (result.status === 200 && result.data) {
+      // 从 Responses API 返回中提取文本输出
+      let outputText = '';
+      if (result.data.output) {
+        // output 可能是数组
+        const outputs = Array.isArray(result.data.output) ? result.data.output : [result.data.output];
+        for (const item of outputs) {
+          if (item.type === 'message' && item.content) {
+            const contents = Array.isArray(item.content) ? item.content : [item.content];
+            for (const c of contents) {
+              if (c.type === 'output_text' && c.text) {
+                outputText += c.text;
+              }
+            }
+          }
+        }
+      }
+
+      // fallback: 直接取 choices 格式（兼容旧格式）
+      if (!outputText && result.data.choices) {
+        outputText = result.data.choices[0]?.message?.content || '';
+      }
+
+      res.json({
+        success: true,
+        enhancedPrompt: outputText || prompt,
+        raw: result.data
+      });
+    } else {
+      console.error('[Web Search] 失败:', JSON.stringify(result.data));
+      res.json({ success: false, enhancedPrompt: prompt, error: result.data });
+    }
+  } catch (err) {
+    console.error('联网搜索失败:', err);
+    res.status(500).json({ error: err.message, enhancedPrompt: req.body.prompt });
+  }
+});
+
 // 创建视频生成任务
 app.post('/api/generate', async (req, res) => {
   try {

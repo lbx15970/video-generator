@@ -70,6 +70,17 @@
             <textarea id="promptInput" class="prompt-input" rows="5" placeholder="描述你想要的视频内容...&#10;&#10;💡 建议格式：[画面描述] + [声音/对白描述]&#10;💡 输入 @ 可引用已上传的素材&#10;例：@素材1 中的女孩转身微笑，温暖的阳光"></textarea>
             <div class="mention-popup" id="mentionPopup" style="display:none"></div>
           </div>
+          <div class="web-search-toggle" id="webSearchToggleArea">
+            <label class="web-search-label" for="webSearchToggle">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              联网搜索
+              <span class="param-hint" title="开启后，生成视频前会先联网搜索提示词相关信息，用搜索结果优化视频描述。基于火山引擎联网内容插件。">ⓘ</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="webSearchToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
           <div class="uploaded-assets" id="uploadedAssets" style="display:none">
             <div class="assets-label">已上传素材（点击插入 @引用）：</div>
             <div class="assets-tags" id="assetsTags"></div>
@@ -135,10 +146,10 @@
                 视频时长
                 <span class="param-value" id="durationValue">5 秒</span>
               </label>
-              <input type="range" id="durationSlider" min="4" max="12" value="5" step="1" class="slider">
+              <input type="range" id="durationSlider" min="4" max="15" value="5" step="1" class="slider">
               <div class="slider-labels">
                 <span>4秒</span>
-                <span>12秒</span>
+                <span>15秒</span>
               </div>
             </div>
             <div class="param-item">
