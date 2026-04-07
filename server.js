@@ -12,8 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ===== 配置 =====
-const API_KEY = process.env.ARK_API_KEY || '07948e1e-2aaa-4191-8890-f06d0a70b29a';
-const ENDPOINT_ID = process.env.ARK_ENDPOINT_ID || 'ep-20260304172343-7thnh';
+let API_KEY = process.env.ARK_API_KEY || '07948e1e-2aaa-4191-8890-f06d0a70b29a';
+let ENDPOINT_ID = process.env.ARK_ENDPOINT_ID || 'ep-20260304172343-7thnh';
+
+// 防止 Vercel 环境变量中错填了模型名称（非接入点 ID）导致报错
+if (ENDPOINT_ID && !ENDPOINT_ID.startsWith('ep-')) {
+  ENDPOINT_ID = 'ep-20260304172343-7thnh';
+  API_KEY = '07948e1e-2aaa-4191-8890-f06d0a70b29a';
+}
 const ARK_BASE = process.env.ARK_BASE_URL || 'ark.cn-beijing.volces.com';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
