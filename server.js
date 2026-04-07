@@ -12,13 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ===== 配置 =====
-let API_KEY = process.env.ARK_API_KEY || '07948e1e-2aaa-4191-8890-f06d0a70b29a';
-let ENDPOINT_ID = process.env.ARK_ENDPOINT_ID || 'ep-20260304172343-7thnh';
+let API_KEY = process.env.ARK_API_KEY || 'b421bf5d-e706-44cd-8ff5-55d596f6d1ae';
+let ENDPOINT_ID = process.env.ARK_ENDPOINT_ID || 'ep-20260330134019-8pxb4';
 
-// 防止 Vercel 环境变量中错填了模型名称（非接入点 ID）导致报错
-if (ENDPOINT_ID && !ENDPOINT_ID.startsWith('ep-')) {
-  ENDPOINT_ID = 'ep-20260304172343-7thnh';
-  API_KEY = '07948e1e-2aaa-4191-8890-f06d0a70b29a';
+// 强制覆盖，防止 Vercel 使用了错误的环境变量或其他旧纪录
+// 此前的 Endpoint ID 解析为了不支持视频的 doubao-seed-2-0-pro 导致错误
+if (process.env.VERCEL) {
+  API_KEY = 'b421bf5d-e706-44cd-8ff5-55d596f6d1ae';
+  ENDPOINT_ID = 'ep-20260330134019-8pxb4';
 }
 const ARK_BASE = process.env.ARK_BASE_URL || 'ark.cn-beijing.volces.com';
 
