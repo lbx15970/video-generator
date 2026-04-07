@@ -427,8 +427,13 @@ app.get('/api/download', (req, res) => {
   request(videoUrl);
 });
 
-// 启动服务
-app.listen(PORT, () => {
-  console.log(`\n🚀 Seedance 2.0 视频生成工具已启动`);
-  console.log(`📺 打开浏览器访问: http://localhost:${PORT}\n`);
-});
+// 启动服务 - 仅在直接运行此文件时启动（本地开发）
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Seedance 2.0 视频生成工具已启动`);
+    console.log(`📺 打开浏览器访问: http://localhost:${PORT}\n`);
+  });
+}
+
+// 导出 app 供 Vercel 使用
+module.exports = app;
