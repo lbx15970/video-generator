@@ -33,7 +33,7 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 文件上传配置
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -43,7 +43,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // ===== 工具函数 =====
-const localTasksFile = path.join(__dirname, 'tasks.json');
+const localTasksFile = process.env.VERCEL ? '/tmp/tasks.json' : path.join(__dirname, 'tasks.json');
 
 function readLocalTasks() {
   if (fs.existsSync(localTasksFile)) {
