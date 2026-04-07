@@ -421,17 +421,18 @@ $('#generateBtn').addEventListener('click', async () => {
     };
 
     const seed = $('#seedInput').value;
-    if (seed && parseInt(seed) !== -1) body.seed = parseInt(seed);
+    if (seed && seed.trim() !== '' && parseInt(seed) !== -1) body.seed = parseInt(seed);
 
     const timeout = $('#timeoutInput').value;
-    if (timeout) body.executionExpiresAfter = parseInt(timeout);
+    if (timeout && timeout.trim() !== '') body.executionExpiresAfter = parseInt(timeout);
 
     if (firstFrameAsset) body.firstFrameDataUrl = firstFrameAsset.dataUrl;
     if (lastFrameAsset) body.lastFrameDataUrl = lastFrameAsset.dataUrl;
 
-    const res = await fetch('/api/generate', {
+    const apiUrl = new URL('/api/generate', window.location.origin).href;
+    const res = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(body)
     });
 
@@ -466,7 +467,8 @@ $('#generateBtn').addEventListener('click', async () => {
       showToast('任务创建失败: ' + JSON.stringify(data), 'error');
     }
   } catch (err) {
-    showToast('请求失败: ' + err.message, 'error');
+    console.error(err);
+    showToast('请求失败: ' + (err.name ? err.name + ': ' : '') + err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.classList.remove('loading');
@@ -545,7 +547,8 @@ function renderLoadingBody(task) {
 }
 
 async function refreshTaskStatus(taskId) {
-  const btn = document.querySelector(`#task-${taskId} .refresh-btn`);
+  const taskEl = document.getElementById(`task-${taskId}`);
+  const btn = taskEl ? taskEl.querySelector('.refresh-btn') : null;
   if (btn) {
     btn.disabled = true;
     btn.classList.add('spinning');
@@ -593,9 +596,9 @@ async function refreshTaskStatus(taskId) {
 }
 
 function updateResultCard(task) {
-  const statusEl = $(`#status-${task.id}`);
-  const bodyEl = $(`#body-${task.id}`);
-  const cardEl = $(`#task-${task.id}`);
+  const statusEl = document.getElementById(`status-${task.id}`);
+  const bodyEl = document.getElementById(`body-${task.id}`);
+  const cardEl = document.getElementById(`task-${task.id}`);
 
   if (!statusEl || !bodyEl) return;
 
