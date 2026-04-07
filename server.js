@@ -12,8 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ===== 配置 =====
-const API_KEY = process.env.ARK_API_KEY;
-const ENDPOINT_ID = process.env.ARK_ENDPOINT_ID;
+const API_KEY = process.env.ARK_API_KEY || '07948e1e-2aaa-4191-8890-f06d0a70b29a';
+const ENDPOINT_ID = process.env.ARK_ENDPOINT_ID || 'ep-20260304172343-7thnh';
 const ARK_BASE = process.env.ARK_BASE_URL || 'ark.cn-beijing.volces.com';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
